@@ -7,7 +7,9 @@ import { authRouters } from './routes/authRoutes.js'
 import { userRouter } from './routes/userRoutes.js'
 
 const app = express();
-const port =  4500;
+const port = process.env.PORT || 5000;
+const host = '0.0.0.0';
+
 connectDB();
 
 app.use(express.json());
@@ -19,6 +21,6 @@ app.get("/", (req, res) => res.send("api working"));
 app.use('/api/auth', authRouters);
 app.use('/api/user', userRouter); 
 
-app.listen(port, () => console.log(`server is started on port : ${port}`));
+app.listen(port,host, () => console.log(`server is started on port : ${port}`));
     
 // hello  
