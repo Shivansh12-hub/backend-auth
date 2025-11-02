@@ -35,16 +35,26 @@ const userSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    expireAt: {
-    type: Date,
-    default: function() {
-      return new Date(Date.now() +60 * 1000);
+    // expireAt: {
+    //     type: Date,
+    //     default: function () {
+    //         return new Date(Date.now() + 60 * 1000);
+    //     }
+    // }
+}, { timestamps: true });
+
+userSchema.index(
+    { createdAt: 1 }, 
+    { 
+        expireAfterSeconds: 60,
+        partialFilterExpression: { isAccountVerified:false}
     }
-  }
-})
+)
 
-userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
-const userModel = mongoose.model.user || mongoose.model('user', userSchema);
+
+// userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
+
+const userModel = mongoose.models.user || mongoose.model('user', userSchema);
 
 export default userModel;

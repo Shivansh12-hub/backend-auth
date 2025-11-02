@@ -3,7 +3,6 @@ import jwt from "jsonwebtoken";
 import validator from "validator";
 import userModel from "../models/userModel.js";
 import sgmail from "@sendgrid/mail"
-
 sgmail.setApiKey(process.env.SENDGRID_API_KEY);
 
 
@@ -86,7 +85,6 @@ sgmail.setApiKey(process.env.SENDGRID_API_KEY);
 
 
 
-
 export const register = async (req, res) => {
     const { name, email, password } = req.body;
 
@@ -104,6 +102,20 @@ export const register = async (req, res) => {
         })
     
     }
+    if (!validator.isStrongPassword(password, {
+    minLength: 8,
+    minLowercase: 1,
+    minUppercase: 1,
+    minNumbers: 1,
+    minSymbols: 1
+    })) {
+        return res.json({
+            success: false,
+            message: "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character"
+        });
+    }
+
+
 
     try {
         const existingUser = await userModel.findOne({ email });
@@ -128,14 +140,6 @@ export const register = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000
         });
 
-        // sending welcome email
-        // const mailOptions = {
-        //     from: process.env.SENDER_EMAIL,
-        //     to: email,
-        //     subject: 'Welcome to the Game Recommenders',
-        //     text: `Hey user welcome to the ocean of the games. You can explore thousands of game on our web application. Your account has been succesfully created with ${email}`
-        // }
-        // await transporter.sendMail(mailOptions)
 
 
         const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -143,88 +147,34 @@ export const register = async (req, res) => {
         user.verifyOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
         await user.save();
 
-        // const mailOptions = {
-        //     from: process.env.G_USER,
-        //     to: user.email,
-        //     subject: 'Account Verification OTP',
-        //     text: `Here is your one-time verification code: ${otp}`
-        // };
+
 
         const msg = {
-  to: email, // recipient email
-  from: process.env.G_USER, // verified sender
-  subject: "Verify Your Account - Game Recommender",
+  to: email,
+  from: process.env.G_USER, // must be verified in SendGrid
+  subject: "Your OTP Code for Account Verification",
+  text: `Hello ${name}, your OTP code is ${otp}. It is valid for 6 minutes.`,
   html: `
-  <!DOCTYPE html>
   <html>
-    <head>
-      <meta charset="UTF-8" />
-      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-      <title>OTP Verification</title>
-      <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f4;
-          color: #333;
-          margin: 0;
-          padding: 0;
-        }
-        .container {
-          background-color: #ffffff;
-          width: 90%;
-          max-width: 500px;
-          margin: 30px auto;
-          padding: 20px;
-          border-radius: 10px;
-          box-shadow: 0 0 10px rgba(0,0,0,0.1);
-        }
-        .header {
-          text-align: center;
-          padding-bottom: 10px;
-          border-bottom: 2px solid #4CAF50;
-        }
-        .otp-box {
-          text-align: center;
-          font-size: 28px;
-          font-weight: bold;
-          letter-spacing: 4px;
-          color: #4CAF50;
-          margin: 20px 0;
-        }
-        .footer {
-          font-size: 12px;
-          text-align: center;
-          color: #888;
-          margin-top: 20px;
-        }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h2>Game Recommender</h2>
-        </div>
-        <p>Hi ${name},</p>
-        <p>Use the following One-Time Password (OTP) to verify your account:</p>
-
-        <div class="otp-box">${otp}</div>
-
-        <p>This OTP is valid for <strong>6 minutes</strong>. Please do not share it with anyone.</p>
-
-        <p>Thank you for joining us!<br>Team Game Recommender</p>
-
-        <div class="footer">
-          &copy; ${new Date().getFullYear()} Game Recommender | All rights reserved.
-        </div>
+    <body style="font-family: Arial, sans-serif; background-color: #ffffff; color: #000000; margin: 0; padding: 0;">
+      <div style="max-width: 500px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="text-align:center; color:#333;">Account Verification</h2>
+        <p>Hello ${name},</p>
+        <p>Your One-Time Password (OTP) for verifying your account is:</p>
+        <div style="text-align:center; font-size: 24px; font-weight: bold; margin: 20px 0;">${otp}</div>
+        <p>This OTP is valid for 6 minutes. Please do not share it with anyone.</p>
+        <p>Thank you,<br/>Game Recommender Team</p>
       </div>
     </body>
   </html>
   `
 };
 
+
         
         try {
             await sgmail.send(msg);
+            console.log("Email from to",process.env.G_USER)
             console.log("Email sent to", email);
             } catch (error) {
                 console.error(" Error sending email:", error);
@@ -407,8 +357,13 @@ export const verifyEmail = async (req, res) => {
         user.isAccountVerified = true;
         user.verifyOtp = '';
         user.verifyOtpExpireAt = 0;
-        user.isVerified = true;
-        user.expireAt = undefined; 
+
+
+        // if (user.isAccountVerified === true) {
+        //     user.expireAt = undefined;
+        // }
+
+
 
         await user.save();
 
@@ -451,7 +406,7 @@ export const sendResetOtp = async (req, res) => {
     }
     try {
         
-        const user = await userModel.findOne({ email });
+        const user = await userModel.findOne({ email, });
         if (!user) {
             return res.json({
                 success: false,
@@ -463,14 +418,58 @@ export const sendResetOtp = async (req, res) => {
         user.resetOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
         await user.save();
 
-        const mailOption = {
-            from: process.env.ENDER_EMAIL,
-            to: user.email,
-            subject: 'Here is the Opt for your forget password',
-            text:`Your otp is ${otp}, use this opt for resetting password `
-        }
+        const msg = {
+  to: email,
+  from: process.env.G_USER, // verified sender
+  subject: "Password Reset OTP - Game Recommender",
+  text: `Hello , your OTP for resetting your password is ${otp}. It will expire in 6 minutes. If you didn’t request this, please ignore this email.`,
+  html: `
+  <html>
+    <body style="font-family: Arial, sans-serif; background-color: #ffffff; color: #000000; margin: 0; padding: 0;">
+      <div style="max-width: 500px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px;">
+        <h2 style="text-align:center; color:#333;">Password Reset Request</h2>
 
-        await transporter.sendMail(mailOption)
+        <p>Hello ,</p>
+
+        <p>We received a request to reset your password for your Game Recommender account. Use the following One-Time Password (OTP) to proceed:</p>
+
+        <div style="text-align:center; font-size: 24px; font-weight: bold; margin: 20px 0; letter-spacing: 2px;">
+          ${otp}
+        </div>
+
+        <p>This OTP is valid for <strong>6 minutes</strong>. Please do not share it with anyone.</p>
+
+        <p>If you didn’t request this, simply ignore this email — your password will remain unchanged.</p>
+
+        <p>Thank you,<br/>The Game Recommender Team</p>
+
+        <hr style="border:none; border-top:1px solid #eee; margin-top:30px;">
+        <p style="font-size: 12px; color: #666; text-align: center;">
+          This is an automated message. Please do not reply.
+        </p>
+      </div>
+    </body>
+  </html>
+  `
+};
+
+        
+        try {
+            await sgmail.send(msg);
+            console.log("Email from to",process.env.G_USER)
+            console.log("Email sent to", email);
+            } catch (error) {
+                console.error(" Error sending email:", error);
+
+            if (error.res) {
+                console.error("SendGrid response body:", error.response.body);
+            }   return res.json({
+                success: false,
+                
+                message: error.message,
+            });
+        };
+
 
         return res.json({
             success: true,
@@ -519,6 +518,18 @@ export const sendResetOtp = async (req, res) => {
                     message:"OTP expires"
                 })
             }
+            if (!validator.isStrongPassword(newPassword, {
+                minLength: 8,
+                minLowercase: 1,
+                minUppercase: 1,
+                minNumbers: 1,
+                minSymbols: 1
+                })) {
+                    return res.json({
+                        success: false,
+                        message: "Password must be at least 8 characters long and include uppercase, lowercase, number, and special character"
+                    });
+                }
             const hashedPassword = await bcrypt.hash(newPassword, 10);
             user.password = hashedPassword;
             user.resetOtp = "";
