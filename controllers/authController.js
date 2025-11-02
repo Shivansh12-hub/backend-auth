@@ -233,7 +233,8 @@ export const register = async (req, res) => {
                 console.error("SendGrid response body:", error.response.body);
             }   return res.json({
                 success: false,
-                message: "Failed to send OTP email",
+                
+                message: error.message,
             });
         };
 
