@@ -3,12 +3,12 @@ import mongoose from "mongoose";
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
-        required:true
+        required: true
     },
     email: {
         type: String,
         required: true,
-        unique:true
+        unique: true
     },
     password: {
         type: String,
@@ -17,25 +17,33 @@ const userSchema = new mongoose.Schema({
     },
     verifyOtp: {
         type: String,
-        default:""
+        default: ""
     },
     verifyOtpExpireAt: {
         type: Number,
-        default:0
+        default: 0
     },
     isAccountVerified: {
         type: Boolean,
-        default:false
+        default: false
     },
     resetOtp: {
         type: String,
-        default:""
+        default: ""
     },
     resetOtpExpireAt: {
         type: Number,
-        default:0
+        default: 0
+    },
+    expireAt: {
+    type: Date,
+    default: function() {
+      return new Date(Date.now() +60 * 1000);
     }
+  }
 })
+
+userSchema.index({ expireAt: 1 }, { expireAfterSeconds: 0 });
 
 const userModel = mongoose.model.user || mongoose.model('user', userSchema);
 

@@ -7,11 +7,12 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "d": "nodemon server.js",
-    "start":"node server.js"
+    "start": "node server.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.2",
     "cookie-parser": "^1.4.7",

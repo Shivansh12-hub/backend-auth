@@ -2,7 +2,10 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 import userModel from "../models/userModel.js";
-import { transporter } from "../config/nodemailer.js";
+import sgmail from "@sendgrid/mail"
+
+sgmail.setApiKey(process.env.SENDGRID_API_KEY);
+
 
 // export const register = async (req, res) => {
 //     const { name, email, password } = req.body;
@@ -55,15 +58,19 @@ import { transporter } from "../config/nodemailer.js";
 //         // await transporter.sendMail(mailOptions)
 
 
+//         const otp = String(Math.floor(100000 + Math.random() * 900000));
+//         user.verifyOtp = otp;
+//         user.verifyOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
+//         await user.save();
+
 //         const mailOptions = {
 //             from: process.env.G_USER,
-//             to: email,
-//             subject: 'Welcome to the Game Recommenders',
-//             text: `Hey user welcome to the ocean of the games. You can explore thousands of game on our web application. Your account has been succesfully created with ${email}`
-//         }
-//         await transporter.sendMail(mailOptions)
+//             to: user.email,
+//             subject: 'Account Verification OTP',
+//             text: `Here is your one-time verification code: ${otp}`
+//         };
 
-
+//         await transporter.sendMail(mailOptions);
 //         return res.json({
 //             success:true
 //         })
@@ -76,6 +83,7 @@ import { transporter } from "../config/nodemailer.js";
 //         })
 //     }
 // }
+
 
 
 
@@ -135,19 +143,106 @@ export const register = async (req, res) => {
         user.verifyOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
         await user.save();
 
-        const mailOptions = {
-            from: process.env.G_USER,
-            to: user.email,
-            subject: 'Account Verification OTP',
-            text: `Here is your one-time verification code: ${otp}`
+        // const mailOptions = {
+        //     from: process.env.G_USER,
+        //     to: user.email,
+        //     subject: 'Account Verification OTP',
+        //     text: `Here is your one-time verification code: ${otp}`
+        // };
+
+        const msg = {
+  to: email, // recipient email
+  from: process.env.G_USER, // verified sender
+  subject: "Verify Your Account - Game Recommender",
+  html: `
+  <!DOCTYPE html>
+  <html>
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>OTP Verification</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          background-color: #f4f4f4;
+          color: #333;
+          margin: 0;
+          padding: 0;
+        }
+        .container {
+          background-color: #ffffff;
+          width: 90%;
+          max-width: 500px;
+          margin: 30px auto;
+          padding: 20px;
+          border-radius: 10px;
+          box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .header {
+          text-align: center;
+          padding-bottom: 10px;
+          border-bottom: 2px solid #4CAF50;
+        }
+        .otp-box {
+          text-align: center;
+          font-size: 28px;
+          font-weight: bold;
+          letter-spacing: 4px;
+          color: #4CAF50;
+          margin: 20px 0;
+        }
+        .footer {
+          font-size: 12px;
+          text-align: center;
+          color: #888;
+          margin-top: 20px;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h2>Game Recommender</h2>
+        </div>
+        <p>Hi ${name},</p>
+        <p>Use the following One-Time Password (OTP) to verify your account:</p>
+
+        <div class="otp-box">${otp}</div>
+
+        <p>This OTP is valid for <strong>6 minutes</strong>. Please do not share it with anyone.</p>
+
+        <p>Thank you for joining us!<br>Team Game Recommender</p>
+
+        <div class="footer">
+          &copy; ${new Date().getFullYear()} Game Recommender | All rights reserved.
+        </div>
+      </div>
+    </body>
+  </html>
+  `
+};
+
+        
+        try {
+            await sgmail.send(msg);
+            console.log("Email sent to", email);
+            } catch (error) {
+                console.error(" Error sending email:", error);
+
+            if (error.res) {
+                console.error("SendGrid response body:", error.response.body);
+            }   return res.json({
+                success: false,
+                message: "Failed to send OTP email",
+            });
         };
 
-        await transporter.sendMail(mailOptions);
-        return res.json({
+
+         return res.json({
             success:true
         })
-        
     } catch (error) {
+        console.error(error);
         res.json({
             success: false,
             message:"Registration failed",
@@ -155,9 +250,6 @@ export const register = async (req, res) => {
         })
     }
 }
-
-
-
 
 
 export const login = async (req, res) => {
@@ -314,6 +406,9 @@ export const verifyEmail = async (req, res) => {
         user.isAccountVerified = true;
         user.verifyOtp = '';
         user.verifyOtpExpireAt = 0;
+        user.isVerified = true;
+        user.expireAt = undefined; 
+
         await user.save();
 
         return res.json({
