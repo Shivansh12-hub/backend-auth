@@ -19,7 +19,7 @@ app.use(cors({ credentials: true }));
 
 app.use(
     cors({
-        origin: process.env.CORS_ORIGIN,
+        origin: "https://game-recommeder.vercel.app",
         credentials:true,
     })
 )
