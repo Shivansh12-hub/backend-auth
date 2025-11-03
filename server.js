@@ -23,6 +23,8 @@ app.use(
     })
 )
 
+//cors
+
 app.set("trust proxy", 1);
 
 // api end points 
