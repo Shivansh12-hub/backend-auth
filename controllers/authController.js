@@ -6,99 +6,20 @@ import sgmail from "@sendgrid/mail"
 sgmail.setApiKey(process.env.SENDGRID_API_KEY);
 
 
-// export const register = async (req, res) => {
-//     const { name, email, password } = req.body;
-
-//     if (!name || !email || !password) {
-//         return res.json({
-//             success: false,
-//             message:"enter all values"
-//         })
-//     }
-
-//     if (!validator.isEmail(email)) {
-//         return res.json({
-//             success: false,
-//             message:"Envalid email"
-//         })
-    
-//     }
-
-//     try {
-//         const existingUser = await userModel.findOne({ email });
-//         if (existingUser) {
-//             return res.json({
-//                 success:false,
-//                 message: "user already exist"
-//             })
-//         }
-
-//         const hashedPassword = await bcrypt.hash(password, 10);
-
-//         const user = new userModel({ name, email, password: hashedPassword });
-//         await user.save();
-
-//         const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: '4d' });
-
-//         res.cookie('token', token, {
-//             httpOnly: true,
-//             secure: process.env.NODE_ENV === 'production',
-//             sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'strict',
-//             maxAge: 7 * 24 * 60 * 60 * 1000
-//         });
-
-//         // sending welcome email
-//         // const mailOptions = {
-//         //     from: process.env.SENDER_EMAIL,
-//         //     to: email,
-//         //     subject: 'Welcome to the Game Recommenders',
-//         //     text: `Hey user welcome to the ocean of the games. You can explore thousands of game on our web application. Your account has been succesfully created with ${email}`
-//         // }
-//         // await transporter.sendMail(mailOptions)
-
-
-//         const otp = String(Math.floor(100000 + Math.random() * 900000));
-//         user.verifyOtp = otp;
-//         user.verifyOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
-//         await user.save();
-
-//         const mailOptions = {
-//             from: process.env.G_USER,
-//             to: user.email,
-//             subject: 'Account Verification OTP',
-//             text: `Here is your one-time verification code: ${otp}`
-//         };
-
-//         await transporter.sendMail(mailOptions);
-//         return res.json({
-//             success:true
-//         })
-        
-//     } catch (error) {
-//         res.json({
-//             success: false,
-//             message:"Registration failed",
-//             message:error.message
-//         })
-//     }
-// }
-
-
-
 export const register = async (req, res) => {
     const { name, email, password } = req.body;
 
     if (!name || !email || !password) {
         return res.json({
             success: false,
-            message:"enter all values"
+            message:"Enter all entries"
         })
     }
 
     if (!validator.isEmail(email)) {
         return res.json({
             success: false,
-            message:"Envalid email"
+            message:"Envalid email please enter a valid email"
         })
     
     }
@@ -122,7 +43,7 @@ export const register = async (req, res) => {
         if (existingUser) {
             return res.json({
                 success:false,
-                message: "user already exist"
+                message: "User already exist"
             })
         }
 
@@ -141,17 +62,15 @@ export const register = async (req, res) => {
         });
 
 
-
         const otp = String(Math.floor(100000 + Math.random() * 900000));
         user.verifyOtp = otp;
         user.verifyOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
         await user.save();
 
 
-
         const msg = {
   to: email,
-  from: process.env.G_USER, // must be verified in SendGrid
+  from: process.env.G_USER, 
   subject: "Your OTP Code for Account Verification",
   text: `Hello ${name}, your OTP code is ${otp}. It is valid for 6 minutes.`,
   html: `
@@ -169,8 +88,6 @@ export const register = async (req, res) => {
   </html>
   `
 };
-
-
         
         try {
             await sgmail.send(msg);
@@ -179,11 +96,8 @@ export const register = async (req, res) => {
             } catch (error) {
                 console.error(" Error sending email:", error);
 
-            if (error.res) {
-                console.error("SendGrid response body:", error.response.body);
-            }   return res.json({
+             return res.json({
                 success: false,
-                
                 message: error.message,
             });
         };
@@ -196,9 +110,9 @@ export const register = async (req, res) => {
         console.error(error);
         res.json({
             success: false,
-            message:"Registration failed",
-            message:error.message
-        })
+            message: "Registration failed",
+            message: error.message
+        });
     }
 }
 
@@ -209,7 +123,7 @@ export const login = async (req, res) => {
     if (!email || !password) {
         return res.json({
             success: false,
-            message:"enter all values"
+            message:"Enter all entries"
         })
     }
     try {
@@ -218,7 +132,7 @@ export const login = async (req, res) => {
         if (!user) {
             return res.json({
                 success: false,
-                message:"envalid email"
+                message:"User do not exist"
             })
         };
 
@@ -227,7 +141,7 @@ export const login = async (req, res) => {
         if (!isMatch) {
             return res.json({
                 success: false,
-                message:"password incorrect"
+                message:"Password incorrect"
             })
         }
 
@@ -277,51 +191,10 @@ export const logout = async (req, res) => {
     }
 }
 
-// send varification otp to user's email
-
-
-// export const sendVerifyOtp = async (req, res) => {
-//     try {
-//         const userId = req.userId; //  from middleware
-//         const user = await userModel.findById(userId);
-
-//         if (user.isAccountVerified) {
-//             return res.json({
-//                 success: false,
-//                 message: "Account already verified"
-//             });
-//         }
-
-//         const otp = String(Math.floor(100000 + Math.random() * 900000));
-//         user.verifyOtp = otp;
-//         user.verifyOtpExpireAt = Date.now() + 6 * 60 * 1000; // 6 minutes
-//         await user.save();
-
-//         const mailOptions = {
-//             from: process.env.G_USER,
-//             to: user.email,
-//             subject: 'Account Verification OTP',
-//             text: `Here is your one-time verification code: ${otp}`
-//         };
-
-//         await transporter.sendMail(mailOptions);
-
-//         res.json({
-//             success: true,
-//             message: "OTP sent successfully"
-//         });
-//     } catch (error) {
-//         res.json({
-//             success: false,
-//             message: error.message
-//         });
-//     }
-// };
-
 
 export const verifyEmail = async (req, res) => {
-    const { otp } = req.body; //  OTP comes from frontend
-    const userId = req.userId; //  from middleware
+    const { otp } = req.body; 
+    const userId = req.userId; 
 
     if (!otp) {
         return res.json({
@@ -358,13 +231,6 @@ export const verifyEmail = async (req, res) => {
         user.verifyOtp = '';
         user.verifyOtpExpireAt = 0;
 
-
-        // if (user.isAccountVerified === true) {
-        //     user.expireAt = undefined;
-        // }
-
-
-
         await user.save();
 
         return res.json({
@@ -395,6 +261,7 @@ export const isAuthenticated = async (req, res) => {
     }
 }
 
+
 export const sendResetOtp = async (req, res) => {
     const { email } = req.body;
 
@@ -410,8 +277,8 @@ export const sendResetOtp = async (req, res) => {
         if (!user) {
             return res.json({
                 success: false,
-                message: "user not found"
-            })
+                message: "User not found"
+            });
         }
         const otp = String(Math.floor(100000 + Math.random() * 900000));
         user.resetOtp = otp;
@@ -453,19 +320,16 @@ export const sendResetOtp = async (req, res) => {
   `
 };
 
-        
+
         try {
             await sgmail.send(msg);
-            console.log("Email from to",process.env.G_USER)
+            console.log("Email from to", process.env.G_USER);
             console.log("Email sent to", email);
             } catch (error) {
                 console.error(" Error sending email:", error);
 
-            if (error.res) {
-                console.error("SendGrid response body:", error.response.body);
-            }   return res.json({
+            return res.json({
                 success: false,
-                
                 message: error.message,
             });
         };
@@ -473,15 +337,15 @@ export const sendResetOtp = async (req, res) => {
 
         return res.json({
             success: true,
-            message:"opt is successfully send to your email"
-        })
+            message: "Otp is successfully send to your email"
+        });
 
     } catch (error) {
         return res.json({
             success: false,
             message: "Error occur while sending otp ",
-            message:error.message
-        })
+            message: error.message
+        });
     }
 }
 
@@ -494,8 +358,8 @@ export const sendResetOtp = async (req, res) => {
         if (!email || !otp || !newPassword) {
             return res.json({
                 success: false,
-                message:"enter all require field"
-            })
+                message: "Enter all require entries",
+            });
         }
 
         try {

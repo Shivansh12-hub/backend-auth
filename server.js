@@ -6,6 +6,7 @@ import connectDB from './config/mongodb.js';
 import { authRouters } from './routes/authRoutes.js'
 import { userRouter } from './routes/userRoutes.js'
 
+
 const app = express();
 const port = process.env.PORT || 5000;
 const host = '0.0.0.0';
@@ -15,6 +16,15 @@ connectDB();
 app.use(express.json());
 app.use(cookieParser());
 app.use(cors({ credentials: true }));
+
+app.use(
+    cors({
+        origin: process.env.CORS_ORIGIN,
+        credentials:true,
+    })
+)
+
+app.set("trust proxy", 1);
 
 // api end points 
 app.get("/", (req, res) => res.send("api working"));

@@ -10,8 +10,9 @@ const getUserData = async (req, res) => {
         success: false,
         message: "No token found, please login again",
       });
-    }
+    };
 
+    
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const userId = decoded.id; 
     const user = await userModel.findById(userId);
